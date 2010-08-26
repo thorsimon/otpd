@@ -99,11 +99,26 @@ verify(config_t *config, const otp_request_t *request, otp_reply_t *reply)
   int	otp_len = 0;
   int	key_len;
   int	pin_len;
+  char	selector = '\0';	/* optional token selector */
+  const char *passcode = NULL;
 
   now = time(NULL);
   hrlast = xgethrtime();
 
-  rc = config->userops->get(request->username, &user, config, now);
+  /* set the selector and pointer to the actual passcode */
+  if (request->pwe.pwe == PWE_PAP) {
+    /* XXX this disallows a PIN of ".:.*" even though docs say it's ok */
+    if (request->pwe.u.pap.passcode[0] != '\0' &&
+        request->pwe.u.pap.passcode[1] == ':') {
+      selector = request->pwe.u.pap.passcode[0];
+      /* skip over selector */
+      passcode = &request->pwe.u.pap.passcode[2];
+    } else {
+      passcode = &request->pwe.u.pap.passcode[0];
+    }
+  }
+  /* get user data */
+  rc = config->userops->get(request->username, selector, &user, config, now);
   if (rc == -1) {
     /* userops->get() log is sufficient */
     rc = OTP_RC_USER_UNKNOWN;
@@ -140,6 +155,7 @@ verify(config_t *config, const otp_request_t *request, otp_reply_t *reply)
       goto auth_done_service_err;
     }
 
+    /* note that for these comparisons, a selector is not treated specially */
     if (strncmp(user->password, "{MD5", 4)) {
       unsigned char md[16];
 
@@ -210,7 +226,7 @@ verify(config_t *config, const otp_request_t *request, otp_reply_t *reply)
       goto auth_done_service_err;
     }
 
-    pin_len = strlen(request->pwe.u.pap.passcode) - otp_len;
+    pin_len = strlen(passcode) - otp_len;
     if (pin_len < 0) {
       mlog(LOG_DEBUG1, "%s: passcode wrong length for [%s]",
            __func__, username);
@@ -226,10 +242,10 @@ verify(config_t *config, const otp_request_t *request, otp_reply_t *reply)
 
     /* extract the PIN from the passcode */
     if (config->prepend_pin) {
-      (void) strncpy(user->pin, request->pwe.u.pap.passcode, pin_len);
+      (void) strncpy(user->pin, passcode, pin_len);
       user->pin[pin_len] = '\0';
     } else {
-      (void) strcpy(user->pin,&request->pwe.u.pap.passcode[otp_len]); /* safe */
+      (void) strcpy(user->pin, &passcode[otp_len]); /* safe */
     }
 
     if (user->encryptmode == EMODE_PINMD5) {
@@ -250,7 +266,7 @@ verify(config_t *config, const otp_request_t *request, otp_reply_t *reply)
   /* with pin encrypt modes, we don't know the expected length of the pin */
   if (user->encryptmode != EMODE_PIN && user->encryptmode != EMODE_PINMD5 &&
       request->pwe.pwe == PWE_PAP) {
-    if (otp_len + pin_len != (int) strlen(request->pwe.u.pap.passcode)) {
+    if (otp_len + pin_len != (int) strlen(passcode)) {
       mlog(LOG_DEBUG1, "%s: passcode wrong length for [%s]",
            __func__, username);
       rc = OTP_RC_AUTH_ERR;

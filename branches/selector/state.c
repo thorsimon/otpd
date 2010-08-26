@@ -85,9 +85,13 @@ state_get_local(const config_t *config, const user_t *user, state_t *state)
   char		buf[GSM_MAX_STATE_LEN + 1];
   ssize_t	len;
 
+  /*
+   * NOTE: Lock is on username, not token state key.
+   * This means a user can't simulauth with different tokens.
+   */
   if ((state->l.lock = lock_get(user->username))) {
     if ((len = state_read(buf, sizeof(buf), config->state.statedir,
-                          user->username)) == -1) {
+                          state_get_key(user))) == -1) {
       lock_put(state->l.lock);
       return -1;
     }
@@ -223,7 +227,7 @@ state_put_local(const config_t *config, const user_t *user, state_t *state)
 
   if (state->updated) {
     state_unparse(buf, user, state);
-    rc = state_write(config->state.statedir, user->username, buf);
+    rc = state_write(config->state.statedir, state_get_key(user), buf);
   } else {
     rc = 0;
   }
@@ -263,6 +267,20 @@ state_put_global(const config_t *config, const user_t *user, state_t *state)
   state->locked = 0;
   return 0;
 } /* state_put_global() */
+
+/*
+ * return the key that should be used to lookup state
+ * if a selector was used, the key is the unique card name
+ * otherwise the key is just the username
+ */
+static const char *
+state_get_key(const user_t *user)
+{
+  if (user->selector)
+    return user->card;
+  else
+    return user->username;
+} /* state_get_key() */
 
 #define UPDATE_TIMEOUT do {		\
   hrtime   = xgethrtime() - hrlast;	\
@@ -635,13 +653,13 @@ state_unparse(char buf[GSM_MAX_MSG_LEN + 1], const user_t *user,
  * buf[nread - 1] is guaranteed to be '\0' if nread > 0.
  */
 static ssize_t
-state_read(char *buf, size_t len, const char *statedir, const char *username)
+state_read(char *buf, size_t len, const char *statedir, const char *key)
 {
   char	filename[PATH_MAX + 1];
   int	fd;
   ssize_t nread, r;
 
-  (void) snprintf(filename, PATH_MAX, "%s/%s", statedir, username);
+  (void) snprintf(filename, PATH_MAX, "%s/%s", statedir, key);
   filename[PATH_MAX] = '\0';
 
   /* open state file */
@@ -725,7 +743,7 @@ state_read(char *buf, size_t len, const char *statedir, const char *username)
  * returns 0 on success, -1 otherwise
  */
 static int
-state_write(const char *statedir, const char *username, char *buf)
+state_write(const char *statedir, const char *key, char *buf)
 {
   char	filename[PATH_MAX + 1], tmpfilename[PATH_MAX + 1];
   int	fd;
@@ -736,7 +754,7 @@ state_write(const char *statedir, const char *username, char *buf)
    * we write partial state.  Better to fail than to corrupt the state.
    * Should this be a dot file?
    */
-  (void) snprintf(tmpfilename, PATH_MAX, "%s/%s%s", statedir, username,
+  (void) snprintf(tmpfilename, PATH_MAX, "%s/%s%s", statedir, key,
                   "XXXXXX");
   tmpfilename[PATH_MAX] = '\0';
   errno = 0;
@@ -777,7 +795,7 @@ state_write(const char *statedir, const char *username, char *buf)
   (void) close(fd);
 
   /* rename to permanent state file */
-  (void) snprintf(filename, PATH_MAX, "%s/%s", statedir, username);
+  (void) snprintf(filename, PATH_MAX, "%s/%s", statedir, key);
   filename[PATH_MAX] = '\0';
   if (rename(tmpfilename, filename) == -1) {
     mlog(LOG_ERR, "%s: rename: %s", __func__, strerror(errno));

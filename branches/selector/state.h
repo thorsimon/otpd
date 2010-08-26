@@ -32,6 +32,7 @@ static int state_get_local(const config_t *, const user_t *, state_t *);
 static int state_get_global(const config_t *, const user_t *, state_t *);
 static int state_put_local(const config_t *, const user_t *, state_t *);
 static int state_put_global(const config_t *, const user_t *, state_t *);
+static const char *state_get_key(const user_t *);
 
 static int gsmd(const config_t *, const user_t *, state_t *, unsigned char *,
                 unsigned char *, const char *);

@@ -41,12 +41,12 @@ RCSID("$Id$")
  * returns 0 on success, -1 for user not found, -2 for other errors.
  */
 static int
-file_get(const char *username, user_t **user, const config_t *config,
-         __unused__ time_t now)
+file_get(const char *username, char selector, user_t **user,
+         const config_t *config, __unused__ time_t now)
 {
   FILE *fp;
   char s[160];
-  char *p, *q;
+  char *p = s, *q;
   struct stat st;
   size_t l;
   const char *passwd = config->file.passwd;
@@ -82,6 +82,30 @@ file_get(const char *username, user_t **user, const config_t *config,
         return -2;
       }
     } else if (!strncmp(s, username, l) && s[l] == ':') {
+      /*
+       * selector rules:
+       * 1. if user does not supply a selector, return first username match
+       * 2. if user's entry does not contain selector data, return this entry
+       *    (might not be first match, if earlier matches had wrong selector)
+       * 3. return this entry iff selector matches
+       */
+      if (selector) {
+        /* l+2 guaranteed within bounds b/c l is much smaller than s */
+	if (s[l+1] != ':' && s[l+1] != '\0' && s[l+2] == ':') {
+          if (s[l+1] != selector) {
+            mlog(LOG_DEBUG1, "%s: %s: [%s] found with wrong selector",
+                 __func__, passwd, username);
+            continue;
+          } else {
+            p = &s[l+1];	/* skip a field for easier further parsing */
+          }
+        } else {
+          /* selector was not used */
+          mlog(LOG_DEBUG1, "%s: %s: [%s] selector not used",
+                 __func__, passwd, username);
+          selector = '\0';
+        }
+      }
       found = 1;
       break;
     }
@@ -95,9 +119,10 @@ file_get(const char *username, user_t **user, const config_t *config,
   /* Found him, allocate a user_t */
   tuser = xmalloc(sizeof(*tuser));
   tuser->username = username;
+  tuser->selector = selector;
 
-  /* skip to next field (card) */
-  if ((p = strchr(s, ':')) == NULL) {
+  /* skip to next field (tokenid) */
+  if ((p = strchr(p, ':')) == NULL) {
     mlog(LOG_ERR, "%s: %s: invalid format for [%s]",
          __func__, passwd, username);
     free(tuser);
@@ -111,7 +136,7 @@ file_get(const char *username, user_t **user, const config_t *config,
     return -2;
   }
   *q++ = '\0';
-  /* p: card_type, q: key */
+  /* p: tokenid, q: key */
 
   /*
    * Unfortunately, we can't depend on having strl*, which would allow
@@ -121,6 +146,13 @@ file_get(const char *username, user_t **user, const config_t *config,
   if (strlen(p) > OTP_MAX_CARDNAME_LEN)
     mlog(LOG_ERR, "%s: %s: invalid format (tokenid) for [%s]",
          __func__, passwd, username);
+  /* make sure '/' is not present to avoid filename path issues */
+  if (strchr(p, '/') != NULL) {
+    mlog(LOG_ERR, "%s: %s: invalid format (tokenid) for [%s]",
+         __func__, passwd, username);
+    free(tuser);
+    return -2;
+  }
   (void) strcpy(tuser->card, p);
 
   p = q;
