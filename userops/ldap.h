@@ -42,7 +42,7 @@ typedef struct ldap_ld_t {
   struct ldap_ld_t	*next;
 } ldap_ld_t;
 
-static int ldap_get(const char *, user_t **, const config_t *, time_t);
+static int ldap_get(const char *, char, user_t **, const config_t *, time_t);
 static void ldap_put(user_t *);
 static ldap_ld_t * getldp(const config_t *, hrtime_t *, struct timeval *);
 static void putldp(ldap_ld_t *, int);

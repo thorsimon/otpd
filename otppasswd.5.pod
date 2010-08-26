@@ -8,9 +8,9 @@ The F</etc/otppasswd> file contains the secrets used to authenticate users
 that hold One-Time Password (OTP) tokens.  Each entry is a single line 
 with colon-delimited fields of the form:
 
-  username:tokenid:key[:pin]
+  username[:selector]:tokenid:key[:pin]
 
-The C<pin> field is optional.
+The C<selector> and C<pin> fields are optional.
 
 The C<key> and C<pin> fields may be encrypted; see otp.conf for a
 description of valid encryption modes and key specification.
@@ -26,9 +26,22 @@ C<E<lt>>, C<=>, C<E<gt>>, C<*> and C<~> are invalid characters.
 C<!> (bang) by itself (as a single character username) is also invalid.
 All other printing characters are valid.
 
+=head2 selector
+
+The C<selector> field is a single character used to distinguish between
+multiple tokens held by the same user.  The user must enter the selector
+character and a colon as the first two characters of the passcode, and
+otpd must have access to the plaintext of the OTP, i.e. for CHAP-style
+authentications token selectors are unavailable.
+
 =head2 tokenid
 
-All printing characters are valid for the C<tokenid> field.
+Only alphanumeric characters and C<-> (dash) are valid for the C<tokenid>
+field.  This field must be at least 2 characters long to distinguish it
+from the optional C<selector> field.
+
+If using selectors, the C<tokenid> field must be unique across all tokens.
+Normally this would be accomplished by including a serial number.
 
 =head2 key
 
@@ -42,7 +55,9 @@ Only hex digits are valid for the C<pin> field: [0-9a-fA-F].
 The C<pin> field should consist of the hex value for an ASCII PIN.
 PINs can be up to 16 characters (32 hex digits) long.  Note that
 since the PIN is represented as hex, the C<:> (colon) and C< > (space)
-restriction noted earlier does not apply.
+restriction noted earlier does not apply to the PIN itself.  However,
+if token selectors are used then colons need to be disallowed or
+restricted by local policy.
 
 =head1 EXAMPLE
 
@@ -59,6 +74,10 @@ luggage.)
 Token support for otpd(8) is provided by plug-in B<cardops modules>.
 This section describes the token ids supported by modules that are
 included with otpd(8).
+
+Each of the token ids described below can be suffixed with C<-> (dash)
+and then arbitrary alphanumeric text, e.g. a serial number, to meet
+the uniqueness requirement for using selectors.
 
 =head2 cryptocard
 

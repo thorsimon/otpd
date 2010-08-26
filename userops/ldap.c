@@ -64,8 +64,8 @@ static pthread_mutex_t ldp_head_mutex = PTHREAD_MUTEX_INITIALIZER;
  * returns 0 on success, -1 for user not found, -2 for other errors.
  */
 static int
-ldap_get(const char *username, user_t **user, const config_t *config,
-         time_t now)
+ldap_get(const char *username, __unused__ char selector,
+         user_t **user, const config_t *config, time_t now)
 {
   ldap_ld_t	*ldp;
   int		unbind = 0;
@@ -95,6 +95,11 @@ ldap_get(const char *username, user_t **user, const config_t *config,
   unsigned char h[20];	/* password hash */
 
   *user = NULL;		/* so ldap_put() can be called safely */
+
+  if (selector) {
+    mlog(LOG_ERR, "%s: token selectors not supported for LDAP", __func__);
+    return -2;
+  }
 
   filter = xmalloc(config->ldap.filter.len + strlen(username) + 1);
   (void) sprintf(filter, config->ldap.filter.val, username);

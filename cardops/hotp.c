@@ -58,7 +58,9 @@ hotp_name2fm(user_t *user, __unused__ state_t *state)
   int i;
 
   for (i = 0; card[i].name; ++i) {
-    if (!strcasecmp(user->card, card[i].name)) {
+    size_t l = strlen(card[i].name);
+    if (!strncasecmp(user->card, card[i].name, l) &&
+        (user->card[l] == '\0' || user->card[l] == '-')) {
       user->featuremask = card[i].fm;
       return 0;
     }

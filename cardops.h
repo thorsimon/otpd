@@ -97,6 +97,7 @@ typedef struct user_t {
   char			card[OTP_MAX_CARDNAME_LEN + 1];
   uint32_t		featuremask;
   time_t		timeissued;
+  char			selector;
 
   char			keystring[OTP_MAX_KEY_LEN * 2 + 1];
   unsigned char		key[OTP_MAX_KEY_LEN];

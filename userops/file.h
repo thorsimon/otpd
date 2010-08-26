@@ -30,7 +30,7 @@ RCSIDH(userops_file_h, "$Id$")
 
 #include "../extern.h"
 
-static int file_get(const char *, user_t **, const config_t *, time_t);
+static int file_get(const char *, char, user_t **, const config_t *, time_t);
 static void file_put(user_t *);
 static void file_init1(const config_t *);
 

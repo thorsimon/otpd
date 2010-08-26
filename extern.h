@@ -71,7 +71,8 @@ struct config_t;
 struct user_t;
 typedef struct userops_t {
   void	(*init1)(const struct config_t *);
-  int	(*get)(const char *, struct user_t **, const struct config_t *, time_t);
+  int	(*get)(const char *, char, struct user_t **, const struct config_t *,
+               time_t);
   void	(*put)(struct user_t *);
 } userops_t;
 extern userops_t userops[OTPD_USEROPS_MAX];
