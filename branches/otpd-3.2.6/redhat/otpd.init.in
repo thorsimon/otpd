@@ -1,0 +1,58 @@
+#!/bin/bash
+#
+# chkconfig: - 90 10
+# description: starts/stops otpd
+
+# Source function library.
+. /etc/init.d/functions
+
+PROG=@sbindir@/otpd
+RETVAL=0
+[ -f /etc/sysconfig/otpd ] && . /etc/sysconfig/otpd
+
+start() {
+  # start the daemon up
+  echo -n $"Starting $PROG: "
+  daemon $PROG $OPTIONS
+  RETVAL=$?
+  echo
+  [ $RETVAL -eq 0 ] && touch /var/lock/subsys/otpd
+}
+
+stop() {
+  # stop the daemon
+  echo -n $"Stopping $PROG: "
+  killproc $PROG
+  echo
+  [ $RETVAL -eq 0 ] && rm -f /var/lock/subsys/otpd
+}
+
+case "$1" in
+  start)
+	start
+	;;
+  stop)
+	stop
+	;;
+  restart)
+	stop
+	start
+	;;
+  condrestart|try-restart)
+        if [ -e /var/lock/subsys/otpd ]; then
+            stop
+            sleep 3
+            start
+        fi
+	;;
+  status)
+        status otpd
+        RETVAL=$?
+        ;;
+
+  *)
+	echo $"Usage: $0 {start|stop|restart|condrestart|status}"
+	exit 1
+esac
+
+exit $RETVAL
