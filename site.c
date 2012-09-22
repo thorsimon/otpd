@@ -65,6 +65,7 @@ RCSID("$Id$")
 
 #include <sys/types.h>
 #include "otp.h"	/* OTP_MAX_CHALLENGE_LEN */
+#include "extern.h"	/* challenge_transform() prototype */
 
 /*
  * The default transform appends the first 2 username chars to the
@@ -92,5 +93,5 @@ challenge_transform(const char *username,
   if (*username)
     challenge[clen++] = *username++;
 
-  return clen;
+  return (ssize_t)clen;
 }

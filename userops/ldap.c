@@ -36,7 +36,7 @@ RCSID("$Id$")
 #include "../cardops.h"
 #include "ldap.h"
 
-static char *otpAttrs[13] = {
+static const char *otpAttrs[13] = {
   "otpVendor",
   "otpModel",
   "otpKey1",
@@ -106,7 +106,7 @@ again:
 
   /* search */
   ldaprc = ldap_search_ext_s(ldp->ld, config->ldap.basedn, scope, filter,
-                             otpAttrs, 0, NULL, NULL,
+                             (char **)otpAttrs, 0, NULL, NULL,
                              &tv, 2 /* max #entries returned */, &result);
   if (ldaprc != LDAP_SUCCESS) {
     if (ldaprc == LDAP_SERVER_DOWN && ldp->used) {
@@ -483,7 +483,7 @@ getldp(const config_t *config, hrtime_t *hrlast, struct timeval *tv)
   if (!ldp->ld) {
     int ldaprc;
     int msgid;
-    char *ldapfn;	/* for error reporting */
+    const char *ldapfn;	/* for error reporting */
     LDAPMessage *result;
 
     xldap_initialize(&ldp->ld, config->ldap.url);
@@ -491,7 +491,8 @@ getldp(const config_t *config, hrtime_t *hrlast, struct timeval *tv)
     if (config->ldap.tls.mode != TLSMODE_OFF) {
       /* this must be set after calling ldap_initialize() */
       if (config->ldap.tls.mode == TLSMODE_BINDONLY)
-        xldap_set_option(ldp->ld, LDAP_OPT_X_SASL_SECPROPS, "maxssf=0");
+        xldap_set_option(ldp->ld, LDAP_OPT_X_SASL_SECPROPS,
+			 (void *)"maxssf=0");
 
       ldapfn = "ldap_start_tls";
       ldaprc = ldap_start_tls(ldp->ld, NULL, NULL, &msgid);

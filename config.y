@@ -25,7 +25,8 @@
 RCSID("$Id$")
 
 extern int yylex(void);
-extern int yyerror(char *);
+int yyerror(const char *);
+int	yywrap(void);
 
 #if 0
 /* need this first, like LFS; should really be in CPPFLAGS but it's hard */
@@ -345,7 +346,7 @@ config_init(void)
      * done here to keep it (validation) all in one place
      */
     if (!opt_c)
-      opt_c = OTPD_DEFAULT_CF;
+      opt_c = xstrdup(OTPD_DEFAULT_CF);
 
     if (opt_d)
       set_log_level(opt_d, 0);
@@ -590,7 +591,7 @@ static struct {
   { .name = "local5",	.facility = LOG_LOCAL5   },
   { .name = "local6",	.facility = LOG_LOCAL6   },
   { .name = "local7",	.facility = LOG_LOCAL7   },
-  { }
+  { .name = NULL, .facility = 0 }
 };
 
 /* set log_facility option */
@@ -645,7 +646,7 @@ static struct {
   { .name = "debug6",	.priority = LOG_DEBUG6  },
   { .name = "debug7",	.priority = LOG_DEBUG7  },
   { .name = "debug8",	.priority = LOG_DEBUG8  },
-  { }
+  { .name = NULL, .priority = 0 }
 };
 
 /* set log_level option */
@@ -1842,7 +1843,7 @@ userops_init(void)
 
 /* report parse error and exit */
 int
-yyerror(char *s)
+yyerror(const char *s)
 {
   mlog(LOG_CRIT, "%s:%d: %s", opt_c, yylineno, s);
   exit(1);

@@ -354,7 +354,11 @@ verify(config_t *config, const otp_request_t *request, otp_reply_t *reply)
 
       /* perform any site-specific transforms of the challenge */
       if (config->site_transform) {
-        if ((clen = challenge_transform(username, challenge, clen)) < 0) {
+	ssize_t ctret = challenge_transform(username, challenge, clen);
+
+	clen = (size_t)ctret;
+
+        if (ctret < 0) {
           mlog(LOG_ERR, "%s: challenge transform failed for [%s]",
                __func__, username);
           rc = OTP_RC_SERVICE_ERR;

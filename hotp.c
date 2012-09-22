@@ -33,7 +33,7 @@ RCSID("$Id$")
 
 static long dmod[10] = { 0, 0, 0, 0, 0, 0,		/* modulus table */
                          1000000L, 10000000L, 100000000L, 1000000000L };
-static char *fmt[10] = { 0, 0, 0, 0, 0, 0,		/* format table  */
+static const char *fmt[10] = { 0, 0, 0, 0, 0, 0,	/* format table  */
                          "%06lu", "%07lu", "%08lu", "%09lu" };
 
 /*

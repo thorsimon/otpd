@@ -71,10 +71,10 @@ c2c(uint64_t counter, unsigned char challenge[8])
 int
 main(int argc, char *argv[])
 {
-  char *username = "username";
-  char *keystring = "0000000000000000000000000000000000000000";
-  char *pass1 = NULL;
-  char *pass2 = NULL;
+  const char *username = "username";
+  const char *keystring = "0000000000000000000000000000000000000000";
+  const char *pass1 = NULL;
+  const char *pass2 = NULL;
   unsigned char challenge[8];
   char response[10];
   unsigned char keyblock[32];

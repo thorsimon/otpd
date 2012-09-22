@@ -21,7 +21,7 @@ DEB_BUILD_GNU_TYPE = i686-linux-gnu
 config.status: configure
 	dh_testdir
 	# Add here commands to configure the package.
-	./configure --host=$(DEB_HOST_GNU_TYPE) --build=$(DEB_BUILD_GNU_TYPE) --prefix=/usr --mandir=\$${prefix}/share/man --infodir=\$${prefix}/share/info
+	CFLAGS="-O2 -g -D_FORTIFY_SOURCE=2 -fstack-protector --param ssp-buffer-size=1 -Wstack-protector -Wall -Wstrict-prototypes -Wmissing-prototypes -Wpointer-arith -Wreturn-type -Wswitch -Wshadow -Wwrite-strings -Wextra -Wno-unused-parameter -Wno-sign-compare -Wformat" ./configure --host=$(DEB_HOST_GNU_TYPE) --build=$(DEB_BUILD_GNU_TYPE) --prefix=/usr --mandir=\$${prefix}/share/man --infodir=\$${prefix}/share/info
 
 configure:
 	autoconf
