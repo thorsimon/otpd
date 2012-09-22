@@ -63,14 +63,12 @@ hotp_mac(const unsigned char counter[8], char output[/*6..10*/],
   uint32_t dbc;		/* "dynamic binary code" from HOTP spec */
 
   if (d < 6 || d > 9) {
-    mlog(LOG_ERR, "%s: Digit out of range", __func__);
     return -1;
   }
 
   /* 1. hmac */
   if (!HMAC(EVP_sha1(), key, key_len, counter, 8, hmac, &hmac_len) ||
       hmac_len != 20) {
-    mlog(LOG_ERR, "%s: HMAC failed", __func__);
     return -1;
   }
 

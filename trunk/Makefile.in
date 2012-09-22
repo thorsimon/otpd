@@ -37,7 +37,7 @@ USEROPS_SRCS = $(wildcard userops/*.c)
 SRCS  = $(CONFIG_SRCS) $(USEROPS_SRCS) accept_thread.c failover_thread.c
 SRCS += gsmd.c helix.c hotp.c 
 SRCS += lock.c main.c mlog.c nonce.c otp.c site.c state.c uhash.c work_thread.c
-SRCS += x99.c xfunc.c
+SRCS += x2a2.c x99.c xfunc.c
 OBJS  = $(patsubst %.c,%.o,$(SRCS))
 MAN   = otpd.8 otppasswd.5 resynctool.8
 
@@ -55,7 +55,7 @@ otpd: $(OBJS) $(CARDOPS_OBJS)
 otpauth: otpauth.o
 	$(CC) -o $@ $(LDFLAGS) $^ $(SOCKET_LIBS)
 
-resynctool: resynctool.o
+resynctool: resynctool.o hotp.o x2a2.c
 	$(CC) -o $@ $(LDFLAGS) $^ -lcrypto
 
 init-scripts: redhat/otpd.init solaris/manifest
