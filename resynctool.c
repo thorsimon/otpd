@@ -28,65 +28,15 @@
 #include <string.h>
 #include <openssl/hmac.h>
 #include <unistd.h>
+#include "extern.h"
 
 extern char *optarg;
 
 static void
-usage(const char *progname)
+usage(const char *pname)
 {
-  fprintf(stderr, "usage: %s -1 <otp1> -2 <otp2> [-u <user>] [-k <key>] [-c <challenge>] [-i <counter>] [-f <counter>] [-d]\n", progname);
+  fprintf(stderr, "usage: %s -1 <otp1> -2 <otp2> [-u <user>] [-k <key>] [-c <challenge>] [-i <counter>] [-f <counter>] [-d]\n", pname);
   exit(1);
-}
-
-static ssize_t
-a2x(const char *s, unsigned char x[])
-{
-  unsigned i;
-  size_t l = strlen(s);
-
-  /*
-   * We could just use sscanf, but we do this a lot, and have very
-   * specific needs, and it's easy to implement, so let's go for it!
-   */
-  for (i = 0; i < l / 2; ++i) {
-    unsigned int n[2];
-    int j;
-
-    /* extract 2 nibbles */
-    n[0] = *s++;
-    n[1] = *s++;
-
-    /* verify range */
-    for (j = 0; j < 2; ++j) {
-      if ((n[j] >= '0' && n[j] <= '9') ||
-          (n[j] >= 'A' && n[j] <= 'F') ||
-          (n[j] >= 'a' && n[j] <= 'f'))
-        continue;
-      return -1;
-    }
-
-    /* convert ASCII hex digits to numeric values */
-    n[0] -= '0';
-    n[1] -= '0';
-    if (n[0] > 9) {
-      if (n[0] > 'F' - '0')
-        n[0] -= 'a' - '9' - 1;
-      else
-        n[0] -= 'A' - '9' - 1;
-    }
-    if (n[1] > 9) {
-      if (n[1] > 'F' - '0')
-        n[1] -= 'a' - '9' - 1;
-      else
-        n[1] -= 'A' - '9' - 1;
-    }
-
-    /* store as octets */
-    x[i]  = n[0] << 4;
-    x[i] += n[1];
-  } /* for (each octet) */
-
-  return l/2;
 }
 
 /*
@@ -103,43 +53,6 @@ keystring2keyblock(const char *keystring, unsigned char keyblock[])
     return -1;
 
   return a2x(keystring, keyblock);
-}
-
-static char *
-x2a(char s[17], unsigned char challenge[8])
-{
-  int i;
-
-  for (i = 0; i < 8; i++)
-    (void) sprintf(&s[i*2], "%02x", challenge[i]);
-  return s;
-}
-
-static void
-hotp(unsigned char challenge[], unsigned char keyblock[], int keylen,
-     unsigned char response[])
-{
-  uint32_t dbc;		/* "dynamic binary code" from HOTP draft */
-  unsigned char md[20];
-  unsigned md_len;
-
-  /* 1. hmac */
-  (void) HMAC(EVP_sha1(), keyblock, keylen, challenge, 8, md, &md_len);
-
-  /* 2. the truncate step is unnecessarily complex */
-  {
-    int offset;
-
-    offset = md[19] & 0x0F;
-    /* we can't just cast md[offset] because of alignment and endianness */
-    dbc = (md[offset] & 0x7F) << 24 |
-           md[offset + 1]     << 16 |
-           md[offset + 2]     << 8  |
-           md[offset + 3];
-  }
-
-  /* 3. int conversion and modulus (as string) */
-  (void) sprintf((char *) response, "%06lu", dbc % 1000000L);
 }
 
 static void
@@ -163,12 +76,12 @@ main(int argc, char *argv[])
   char *pass1 = NULL;
   char *pass2 = NULL;
   unsigned char challenge[8];
-  unsigned char response[7];
+  char response[10];
   unsigned char keyblock[32];
   uint64_t counter;
   uint64_t initial = 0;
   uint64_t final = 0;
-  int keylen;
+  int keylen, len1, len2;
 
   int debug = 0;
 
@@ -198,12 +111,17 @@ main(int argc, char *argv[])
   }
   if (!pass1 || !pass2)
     usage(argv[0]);
-  if (strlen(pass1) != 6) {
-    (void) fprintf(stderr, "%s: passcode 1 wrong length\n", argv[0]);
+
+  len1 = strlen(pass1);
+  len2 = strlen(pass2);
+
+  if (len1 != len2) {
+    (void) fprintf(stderr, "%s: passcode lengths differ\n", argv[0]);
     exit(1);
   }
-  if (strlen(pass2) != 6) {
-    (void) fprintf(stderr, "%s: passcode 2 wrong length\n", argv[0]);
+
+  if (len1 < 6 || len2 < 6 || len1 > 9 || len2 > 9) {
+    (void) fprintf(stderr, "%s: bad HOTP passcode length\n", argv[0]);
     exit(1);
   }
 
@@ -219,7 +137,7 @@ main(int argc, char *argv[])
 
   for (counter = initial; counter < final; ++counter) {
     c2c(counter, challenge);
-    hotp(challenge, keyblock, keylen, response);
+    hotp_mac(challenge, response, keyblock, keylen, len1);
    
     if (debug == 1)
        (void) printf("%" PRIu64 ": %s\n", counter, response);
@@ -230,12 +148,14 @@ main(int argc, char *argv[])
 
       /* matched first pass, look for 2nd */
       c2c(++counter, challenge);
-      hotp(challenge, keyblock, keylen, response);
+      hotp_mac(challenge, response, keyblock, keylen, len2);
       if (!strcmp((char *) response, pass2)) {
         char s[17];
 
         /* print the new state containing the last used challenge */
-        (void) printf("5:%s:%s:::0:0:0:\n", username, x2a(s, challenge));
+        (void) printf("5:%s:%s:::0:0:0:\n", username,
+		      x2a(challenge, sizeof(challenge),
+			  s, x2a_hex_conversion));
         exit(0);
 
       } else if (debug) {
