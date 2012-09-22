@@ -94,6 +94,7 @@ id		return KEYID;
 key		{ BEGIN UWORD; return KEY;          }
 state		return STATE;
 statedir	{ BEGIN UWORD; return STATEDIR;     }
+filemode	{ BEGIN UWORD; return FILEMODE;	    }
 gsmd_port	return GPORT;
 server		return SERVER;
 name		{ BEGIN UWORD; return NAME;    }

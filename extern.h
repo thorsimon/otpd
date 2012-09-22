@@ -128,6 +128,7 @@ typedef struct config_t {
   struct {
     int		mode;
     char	statedir[PATH_MAX + 1];
+    int		filemode;
   } state;
 
   int		s;	/* plugin socket (not actually configuration) */

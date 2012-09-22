@@ -29,6 +29,7 @@ RCSID("$Id$")
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -61,7 +62,10 @@ file_get(const char *username, user_t **user, const config_t *config,
     mlog(LOG_ERR, "%s: stat(%s): %s", __func__, passwd, strerror(errno));
     return -2;
   }
-  if ((st.st_mode & (S_IXUSR|S_IRWXG|S_IRWXO)) != 0) {
+
+  /* Permissions may be "loose" just so we can read the file! */
+  if (st.st_uid == geteuid() &&
+      (st.st_mode & (S_IXUSR|S_IRWXG|S_IRWXO)) != 0) {
     mlog(LOG_ERR, "%s: %s: loose permissions", __func__, passwd);
     return -2;
   }
