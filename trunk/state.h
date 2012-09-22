@@ -39,6 +39,6 @@ static int state_parse(const char *, size_t,
                        const config_t *, const char *, state_t *);
 static void state_unparse(char *, const user_t *, const state_t *);
 static ssize_t state_read(char *, size_t, const char *, const char *);
-static int state_write(const char *, const char *, char *);
+static int state_write(const char *, const char *, char *, mode_t mode);
 
 #endif /* STATE_H */

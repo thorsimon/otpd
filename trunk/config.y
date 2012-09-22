@@ -78,6 +78,7 @@ static void set_passwd_keyid(int);
 static void set_passwd_key(char *);
 
 static void set_state_mode(char *);
+static void set_state_filemode(char *);
 static void set_statedir(char *);
 static void set_state_timeout(int);
 static void set_state_gport(int);
@@ -106,7 +107,7 @@ static void userops_init(void);
 }
 
 /* ignore shift/reduce conflicts we know of */
-%expect 15
+%expect 16
 
 %token OTPD
 %token USER LOG_FACILITY LOG_LEVEL PLUGIN_RP BACKEND TIMEOUT
@@ -116,7 +117,7 @@ static void userops_init(void);
 %token USER_LDAP HOST PORT BINDDN BINDPW BASEDN FILTER SCOPE
 %token LDAP_TLS MODE VERIFY_CERT CACERTFILE CACERTDIR CERTFILE KEYFILE
 %token PASSWDKEY KEYID KEY
-%token STATE STATEDIR GPORT SERVER NAME PRIMARY BACKUP
+%token STATE STATEDIR GPORT SERVER NAME PRIMARY BACKUP FILEMODE
 
 %token <ival> YES NO
 %token <sval> WORD
@@ -198,6 +199,7 @@ state_config_item:	MODE '=' WORD		{ set_state_mode($3);     }
 	|	GPORT    '=' INTEGER		{ set_state_gport($3);    }
 	|	PORT     '=' INTEGER		{ set_state_gport($3);    }
 	|	SERVER '{' server_config '}'	{ finish_server();        }
+	|	FILEMODE '=' WORD		{ set_state_filemode($3); }
 
 server_config:	server_config_item
 	|	server_config server_config_item
@@ -229,6 +231,7 @@ yesno:		YES | NO
 #include <string.h>
 #include <syslog.h>
 #include <sys/socket.h>
+#include <sys/stat.h>
 #include <sys/un.h>	/* sockaddr_un */
 #include <sys/types.h>
 #include <unistd.h>
@@ -286,6 +289,7 @@ static int seen_state_mode;	/* seen state mode option?     */
 static int seen_statedir;	/* seen state statedir option? */
 static int64_t seen_gtimeout;	/* doubles as current value    */
 static int seen_gport;		/* seen state port option?     */
+static int seen_state_filemode;	/* seen state file mode ?      */
 static char *seen_server_name;	/* doubles as current value    */
 static char *seen_server_primary;	/* doubles as current value */
 static char *seen_server_backup;	/* doubles as current value */
@@ -387,6 +391,7 @@ config_init(void)
 
   config.state.mode     = SMODE_LOCAL;
   (void) strcpy(config.state.statedir, OTPD_STATEDIR);
+  config.state.filemode	= S_IRUSR|S_IWUSR;
 
   config.timeout        = 11700000000LL;	/* 11.7s */
   config.prepend_pin    = 1;
@@ -1259,6 +1264,29 @@ set_state_mode(char *arg)
     exit(1);
   }
 }
+
+/* set statefile permissions */
+static void
+set_state_filemode(char *arg)
+{
+  int fmode;
+
+  if (seen_state_filemode) {
+    mlog(LOG_NOTICE,
+	 "%s:%d: statefile mode option already set, ignoring",
+	 opt_c, yylineno); 
+  }
+
+  if ((sscanf(arg, "%o", &fmode) != 1) ||
+      ((fmode & (S_IRWXU|S_IRWXG|S_IRWXO)) != fmode)) {
+    mlog(LOG_CRIT, "%s:%d: invalid file mode for state files",
+	 opt_c, yylineno);
+    exit(1);
+  }
+  free(arg);
+  config.state.filemode = fmode;
+}
+
 
 /* set state statedir option */
 static void

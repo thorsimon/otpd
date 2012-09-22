@@ -223,7 +223,8 @@ state_put_local(const config_t *config, const user_t *user, state_t *state)
 
   if (state->updated) {
     state_unparse(buf, user, state);
-    rc = state_write(config->state.statedir, user->username, buf);
+    rc = state_write(config->state.statedir, user->username, buf,
+		     config->state.filemode);
   } else {
     rc = 0;
   }
@@ -725,7 +726,7 @@ state_read(char *buf, size_t len, const char *statedir, const char *username)
  * returns 0 on success, -1 otherwise
  */
 static int
-state_write(const char *statedir, const char *username, char *buf)
+state_write(const char *statedir, const char *username, char *buf, mode_t mode)
 {
   char	filename[PATH_MAX + 1], tmpfilename[PATH_MAX + 1];
   int	fd;
@@ -759,6 +760,8 @@ state_write(const char *statedir, const char *username, char *buf)
     }
     return -1;
   }
+
+  fchmod(fd, mode);
 
   /* add LF-termination */
   len = strlen(buf);
