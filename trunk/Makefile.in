@@ -94,7 +94,7 @@ distclean: clean
 	rm -rf Makefile config.log config.status autom4te.cache redhat/otpd.init solaris/manifest configure
 
 clean:
-	rm -f otpd $(OBJS) otpauth otpauth.o resynctool resynctool.o $(patsubst %.c,%.o,$(CARDOPS_SRCS)) $(MAN)
+	rm -f otpd $(OBJS) otpauth otpauth.o resynctool resynctool.o $(patsubst %.c,%.o,$(CARDOPS_SRCS)) y.tab.c y.tab.h scanner.c $(MAN)
 
 common_headers = extern.h
 specific_headers = $(filter-out $(common_headers),$(wildcard *.h cardops/*.h userops/*.h))

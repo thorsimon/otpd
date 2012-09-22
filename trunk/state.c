@@ -289,7 +289,7 @@ gsmd(const config_t *config, const user_t *user, state_t *state,
   int		i;
   hrtime_t	hrlast, hrtime, timeout;
   int		failover, polltimeout;
-  char		*reason;
+  const char	*reason;
   struct pollfd	pfd;
   unsigned char	*cmsg = &cp[HELIX_NONCE_LEN];
   unsigned char	*pmsg = &pp[HELIX_NONCE_LEN];

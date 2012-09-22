@@ -37,7 +37,7 @@ RCSID("$Id$")
 #include "otp.h"
 
 #define MAX_ERRLIST 7
-static char *errlist[MAX_ERRLIST+1] = {
+static const char *errlist[MAX_ERRLIST+1] = {
   "ok",
   "user unknown",
   "authinfo unavailable",
@@ -94,7 +94,7 @@ main(int argc, char *argv[])
 
   rc = verify(otpd_socket, username, password);
   {
-    char *errtext;
+    const char *errtext;
 
     if (rc < 0 || rc > MAX_ERRLIST)
       errtext = "invalid return code";

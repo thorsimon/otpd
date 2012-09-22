@@ -51,7 +51,7 @@ char *opt_u;				/* user             */
 char *opt_p;				/* plugin rp        */
 char *opt_d;				/* log_level        */
 
-char *progname = "otpd";
+const char *progname = "otpd";
 
 /* initialize signal handling */
 static void
@@ -152,7 +152,7 @@ daemonize(int listenfd)
   }
 
   /* initialize syslog */
-  mopenlog(basename(progname), LOG_PID|LOG_NDELAY);
+  mopenlog(basename((char *)progname), LOG_PID|LOG_NDELAY);
 }
 
 /* print usage */
@@ -201,7 +201,7 @@ main(int argc, char *argv[])
         break;
       case 'D':		/* max debug + foreground */
         dodaemon = 0;
-        opt_d = "debug8";
+        opt_d = xstrdup("debug8");
         break;
 
       case 'u':		/* user */
@@ -215,7 +215,8 @@ main(int argc, char *argv[])
       case 'h':		/* help */
         usage(0);
       case 'v':		/* version */
-        (void) fprintf(stderr, "%s version %s\n", basename(progname), VERSION);
+        (void) fprintf(stderr, "%s version %s\n",
+		       basename((char *)progname), VERSION);
         exit(0);
       case ':':		/* missing arg */
         usage(1);
@@ -238,7 +239,7 @@ main(int argc, char *argv[])
 
   if (dodaemon)
     daemonize(config->s);
-  mlog(LOG_NOTICE, "%s %s starting", basename(progname), VERSION);
+  mlog(LOG_NOTICE, "%s %s starting", basename((char *)progname), VERSION);
 
   /* all threads should be detached */
   (void) pthread_attr_init(&attr_detached);

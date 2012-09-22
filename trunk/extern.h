@@ -220,7 +220,7 @@ extern char *opt_c;
 extern char *opt_u;
 extern char *opt_d;
 extern char *opt_p;
-extern char *progname;
+extern const char *progname;
 
 /* mlog.c */
 #include <syslog.h>	/* LOG_DEBUG */
